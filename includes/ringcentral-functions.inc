@@ -6,7 +6,7 @@
 /* ================= */
 
 function app_name () {
-    return "FAX API Sample App - Part 2";
+    return "SMS FAX Blog Demo App";
 }
 
 /* ================== */
@@ -41,6 +41,29 @@ function ringcentral_sdk () {
     $controller = array('SDK' => $sdk, 'platform' => $platform);
     return $controller;
 }
+function send_sms($to_mobile, $message) {
+	show_errors();
+	$controller = ringcentral_sdk();
+	$platform = $controller['platform'];
+
+	$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+	$dotenv->load();
+
+	$from_mobile = $_ENV['RC_MOBILE_SENDING_NUMBER'];
+
+	try {
+		$apiResponse = $platform->post('/restapi/v1.0/account/~/extension/~/sms',
+			array('from' => array('phoneNumber' => $from_mobile),
+				'to' => array(array('phoneNumber' => $to_mobile)),
+				'text' => $message,)
+		);
+	} catch (\RingCentral\SDK\Http\ApiException $e) {
+		// craft a friendly message here.
+		$return_message = "There was an error sending the SMS message, Please try again later <br/>" . $e;
+	}
+
+	return;
+}
 
 function send_fax ($to_fax_number, $file_with_path, $cover_note) {
     $controller = ringcentral_sdk();
@@ -64,7 +87,7 @@ function send_fax ($to_fax_number, $file_with_path, $cover_note) {
     catch (\RingCentral\SDK\Http\ApiException $e) {
         // Getting error messages using PHP native interface
         print 'Expected HTTP Error: ' . $e;
-        print '  Message: ' . $e->apiResponse->response()->error() . PHP_EOL;
+        print '  Message: ' . $e->getMessage();
     }
     return $message_id;
 }

@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2019-2024 Paladin Business Solutions
  */
-ob_start() ;
+ob_start();
 session_start();
 
 require_once('includes/ringcentral-functions.inc');
@@ -12,11 +12,11 @@ show_errors();
 
 page_header(0);
 
-function show_form ($message, $label = "", $print_again = false) {
+function show_form($message, $label = "", $print_again = false) {
 
     ?>
     <form action="" method="post" enctype="multipart/form-data">
-        <table class="EditTable" >
+        <table class="EditTable">
             <tr class="CustomTable">
                 <td colspan="2" class="CustomTableFullCol">
                     <img src="images/rc-logo.png"/>
@@ -32,47 +32,110 @@ function show_form ($message, $label = "", $print_again = false) {
             </tr>
             <tr class="CustomTable">
                 <td class="left_col">
-                    <p style='display: inline; <?php if ($label == "to_fax_number") echo "color:red"; ?>'>Receiving Fax #:</p>
+                    <p style='display: inline;'>Receiving SMS #:</p>
                 </td>
                 <td class="right_col">
-                    <input type="text" name="to_fax_number" >
+                    <input type="text" name="to_sms_number">
                 </td>
             </tr>
             <tr class="CustomTable">
                 <td class="left_col">
-                    <p style='display: inline; <?php if ($label == "cover_note") echo "color:red"; ?>'>Fax Cover Note:</p>
+                    <p style='display: inline;'>SMS Message:</p>
                 </td>
                 <td class="right_col">
-                    <input type="text" name="cover_note" >
+                    <textarea name="sms_message"></textarea>
+                </td>
+            </tr>
+            <tr class="CustomTable">
+                <td colspan="2" class="CustomTableFullCol">
+                    <br/>
+                    <input type="submit" class="submit_button" value="   Send SMS   " name="send_sms">
+                </td>
+            </tr>
+            <tr class="CustomTable">
+                <td colspan="2" class="CustomTableFullCol">
+                    <hr>
                 </td>
             </tr>
             <tr class="CustomTable">
                 <td class="left_col">
-                    <p style='display: inline; <?php if ($label == "file_to_fax") echo "color:red"; ?>'>Upload file to Fax:</p>
+                    <p style='display: inline; '>Receiving Fax #:</p>
+                </td>
+                <td class="right_col">
+                    <input type="text" name="to_fax_number">
+                </td>
+            </tr>
+            <tr class="CustomTable">
+                <td class="left_col">
+                    <p style='display: inline; <?php if ($label == "cover_note") echo "color:red"; ?>'>Fax Cover
+                        Note:</p>
+                </td>
+                <td class="right_col">
+                    <input type="text" name="cover_note">
+                </td>
+            </tr>
+            <tr class="CustomTable">
+                <td class="left_col">
+                    <p style='display: inline; <?php if ($label == "file_to_fax") echo "color:red"; ?>'>Upload file to
+                        Fax:</p>
                 </td>
                 <td class="right_col">
                     <input type="file" name="file_to_fax" id="file_to_fax">
                 </td>
             </tr>
             <tr class="CustomTable">
-                <td class="CustomTableFullCol">
-                    <br/>
-                    <input type="submit" class="submit_button" value="   List Faxes   " name="list_faxes">
-                </td>
-                <td class="CustomTableFullCol">
+                <td colspan="2" class="CustomTableFullCol">
                     <br/>
                     <input type="submit" class="submit_button" value="   Send Fax   " name="send_fax">
                 </td>
             </tr>
             <tr class="CustomTable">
-                <td colspan="2" class="CustomTableFullCol"><hr></td>
+                <td colspan="2" class="CustomTableFullCol">
+                    <hr>
+                </td>
             </tr>
         </table>
     </form>
     <?php
 }
 
-function check_form () {
+function check_sms_form() {
+    show_errors();
+
+    $print_again = false;
+    $label = "";
+    $message = "";
+
+    /* ============================================ */
+    /* ====== START data integrity checks ========= */
+    /* ============================================ */
+
+    $to_sms_number = strip_tags($_POST['to_sms_number']);
+    $sms_message = strip_tags($_POST['sms_message']);
+
+    if ($sms_message == "") {
+        $print_again = true;
+        $message = "No SMS message body has been provided";
+    }
+    if ($to_sms_number == "") {
+        $print_again = true;
+        $message = "No receiving SMS Number has been provided";
+    }
+
+    /* ========================================== */
+    /* ====== END data integrity checks ========= */
+    /* ========================================== */
+    if ($print_again) {
+        show_form($message);
+    } else {
+        send_sms($to_sms_number, $sms_message);
+        $message = "SMS message has been sent Successfully";
+        show_form($message);
+    }
+
+}
+
+function check_fax_form() {
     show_errors();
 
     $print_again = false;
@@ -109,13 +172,13 @@ function check_form () {
 
     $file_with_path = upload_file();
 
-    $fax_sent_id = send_fax($to_fax_number, $file_with_path, $cover_note) ;
+    $fax_sent_id = send_fax($to_fax_number, $file_with_path, $cover_note);
     if ($fax_sent_id > 0) {
         $print_again = true;
         $label = "";
-        $message = "Fax sent successfully (Sent id): " . $fax_sent_id ;
+        $message = "Fax sent successfully (Sent id): " . $fax_sent_id;
         // clean out the file
-        unlink($file_with_path) ;
+        unlink($file_with_path);
     }
     show_form($message, $label, $print_again);
 }
@@ -123,12 +186,12 @@ function check_form () {
 /* ============= */
 /*  --- MAIN --- */
 /* ============= */
-if (isset($_POST['send_fax'])) {
-    check_form();
-} elseif (isset($_POST['list_faxes'])) {
-    header("Location: list_faxes.php");
+if (isset($_POST['send_sms'])) {
+    check_sms_form();
+} elseif (isset($_POST['send_fax'])) {
+    check_fax_form();
 } else {
-    $message = "Please provide information to be faxed. <br/><br/>";
+    $message = "Please provide the needed information. <br/><br/>";
     show_form($message);
 }
 
